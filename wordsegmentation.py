@@ -1,7 +1,7 @@
 import sys
 from os.path import join, dirname, realpath
 from itertools import groupby
-import networkx as nx
+#import networkx as nx
 from itertools import groupby, count
 from math import log10
 from functools import wraps
@@ -272,10 +272,12 @@ class WordSegment(object):
             prev_list = []
             for tu2 in meaningful_words:
                if not inter.check(tu1[0], tu2[0]) and tu1[0][0] == tu2[0][1] + 1:
-                   prev_list.append(pos+1)
+                   prev_list.append(pos+1 if pos is not None else 1)
 #                   print "prev list appended {}".format(pos+1)
-
-               pos += 1
+               if pos == None:
+                   pos = 1
+               else:
+                   pos += 1
 #            print "for {0}, the non-intersected word positions are: {1}, words are,".format(tu1, tmp_lst)
             if prev_list:
                 prev_list.reverse()
@@ -353,8 +355,9 @@ class WordSegment(object):
                         if memo[self.lst[(j-1)][2][i]-1] > tmp_p:
                             tmp_p = memo[self.lst[(j-1)][2][i]-1]
                             tmp_i = i
-
-                if self.lst[(j-1)][3] + memo[self.lst[(j-1)][2][tmp_i]-1] >= memo[j-2]:# if j-2 >= 0 else memo[0]:
+                
+                
+                if self.lst[(j-1)][3] + memo[(self.lst[(j-1)][2][tmp_i]) if self.lst[(j-1)][2][tmp_i]) != 0 else -1]  >= memo[j-2] if j-2 < 0 else memo[0]:
                     print "value of word:{0}<--{1} + its p:{2}'s value<--{3} is greater than its alter word{4}'s vale<--{5}".format(self.lst[(j-1)][1], self.lst[(j-1)][3], self.lst[self.lst[(j-1)][2][tmp_i]-1][1], memo[self.lst[(j-1)][2][tmp_i]-1], self.lst[j-2][1], memo[j-2])
                     path.append(self.lst[(j-1)][1])
                     solution(self.lst[(j-1)][2][tmp_i], path)
@@ -372,8 +375,8 @@ class WordSegment(object):
         
 
 w = WordSegment()
-#w.segment('facebookingirl')
 w.segment('whoiswatching')
+#w.segment('facebook')
 
 #[[(1, 2), 're', (0,), -3.3763613545002444], [(1, 3), 'res', (0,), -4.714070147634635], [(0, 3), 'pres', (0,), -5.473683269420768], [(0, 4), 'press', (0,), -3.7562511751772165], [(5, 6), 'in', (4,), -2.0828320968180307], [(4, 6), 'sin', (3, 2), -4.7568720472963255], [(5, 7), 'ing', (4,), -4.764245359469461], [(0, 7), 'pressing', (0,), -5.219687455935545], [(4, 7), 'sing', (3, 2), -4.964814564774299], [(8, 9), 'in', (9, 8, 7), -2.0828320968180307], [(7, 9), 'gin', (6, 5), -5.719891144995784], [(8, 13), 'invest', (9, 8, 7), -5.0115585455811225], [(10, 13), 'vest', (11, 10), -5.440256832732823], [(11, 13), 'est', (0,), -4.246418105099501], [(12, 14), 'ste', (0,), -5.139639429862561], [(8, 15), 'invested', (9, 8, 7), -5.331745273821968], [(13, 15), 'ted', (0,), -5.013907093936451], [(10, 15), 'vested', (11, 10), -5.71636275049824], [(14, 15), 'ed', (14, 13, 12), -4.296448041283057]]        
         
