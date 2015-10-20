@@ -18,8 +18,8 @@ def parse_file(filename):
         lines = (line.split('\t') for line in fptr)
         return dict((word, float(number)) for word, number in lines)
 
-#UNIGRAM_COUNTS = parse_file(join(dirname(realpath(__file__)), 'corpus', 'unigrams.txt'))
-UNIGRAM_COUNTS = parse_file(join(dirname(realpath(__file__)), 'corpus', 'unigrams.txt.original'))
+UNIGRAM_COUNTS = parse_file(join(dirname(realpath(__file__)), 'corpus', 'unigrams.txt'))
+#UNIGRAM_COUNTS = parse_file(join(dirname(realpath(__file__)), 'corpus', 'unigrams.txt.original'))
 
 def as_range(group):
     '''
@@ -262,9 +262,12 @@ class WordSegment(object):
                 if word in each[1][0] + pair_dic[each[1]]:
                     if self._string[each[1][1][0]:each[1][1][0]+len(word)] == word:
                         meaningful_words.append([(each[1][1][0], each[1][1][0]+len(word)-1), word, self.score_tool.get_unigram_score(word)])
+
         #sort the list in order of position in original text
+
         meaningful_words.sort(key=lambda x: x[0][1])
         #the sorted list is [((1, 4), 'ace', -4.964005188761728), ((0, 4), 'face', -4.0926128161036965), ((4, 6), 'bo', -5.2144070696039995), ((4, 7), 'boo', -5.550655106498099), ((4, 8), 'book', -3.490909555336102), ((0, 8), 'facebook', -6.671146108616224)]
+        print "meaningful list is {}".format(meaningful_words)
         print meaningful_words
         tmp_lst = []
         inter = IntersectCheck()        
@@ -321,7 +324,7 @@ class WordSegment(object):
             if memo[j-1] is None:    
                 memo[j-1] = max(
                     _add(opt(self.lst[(j-1)][2][0], memo, j), self.lst[(j-1)][3], self.penaltize(j, self.lst[(j-1)][2][0])),
-                    opt(j-1, memo, j) if self.lst[(j-2)][0][1] == self.lst[(j-1)][0][1] else None
+                    opt(j-1, memo, j) if self.lst[(j-2)][0][1] == self.lst[(j-1)][0][1] else None #jump only when nesrest overlpping word has the same finish position
                     )
                 return memo[j-1]
 
@@ -415,16 +418,22 @@ class WordSegment(object):
         path.reverse()
         print "for node {0}, the path is {1}".format(j, path)
 
-w = WordSegment()
+w = WordSegment(use_google_corpus=True)
 #w.segment('whoiswatching')
 '''
 w.segment('facebookingirl')
 w.segment('facebook')
 w.segment('whoiswatching')
-w.segment('pressinginvestedthebecomethemselves')
+
 w.segment('acertain')
-'''
 w.segment('theyouthevent')
+'''
+w.segment('baidu')
+w.segment('google')
+w.segment('from')
+w.segment('pressinginvestedthebecomethemselves')
+
+#w.segment('theyouthevent')
 #[[(1, 2), 're', (0,), -3.3763613545002444], [(1, 3), 'res', (0,), -4.714070147634635], [(0, 3), 'pres', (0,), -5.473683269420768], [(0, 4), 'press', (0,), -3.7562511751772165], [(5, 6), 'in', (4,), -2.0828320968180307], [(4, 6), 'sin', (3, 2), -4.7568720472963255], [(5, 7), 'ing', (4,), -4.764245359469461], [(0, 7), 'pressing', (0,), -5.219687455935545], [(4, 7), 'sing', (3, 2), -4.964814564774299], [(8, 9), 'in', (9, 8, 7), -2.0828320968180307], [(7, 9), 'gin', (6, 5), -5.719891144995784], [(8, 13), 'invest', (9, 8, 7), -5.0115585455811225], [(10, 13), 'vest', (11, 10), -5.440256832732823], [(11, 13), 'est', (0,), -4.246418105099501], [(12, 14), 'ste', (0,), -5.139639429862561], [(8, 15), 'invested', (9, 8, 7), -5.331745273821968], [(13, 15), 'ted', (0,), -5.013907093936451], [(10, 15), 'vested', (11, 10), -5.71636275049824], [(14, 15), 'ed', (14, 13, 12), -4.296448041283057]]        
         
     
