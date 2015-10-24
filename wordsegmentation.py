@@ -5,16 +5,24 @@ Word segmentation is the process of dividing a phrase without spaces back
 into its constituent parts. For example, consider a phrase like "thisisatest".
 For humans, it's relatively easy to parse. 
 This module makes it easy for
-machines too. Use `segment` to parse a phrase into its parts:
->>> from wordsegment import segment
->>> segment('thisisatest')
-['this', 'is', 'a', 'test']
-In the code, 1024908267229 is the total number of words in the corpus. A
-subset of this corpus is found in unigrams.txt and bigrams.txt which
-should accompany this file. A copy of these files may be found at
-http://norvig.com/ngrams/ under the names count_1w.txt and count_2w.txt
-respectively.
-Copyright (c) 2015 by Weihan Jiang
+machines too. 
+
+Typically, you will use the module this way in your own code.
+
+>>> from wordsegmentation import WordSegment
+>>> ws = WordSegment(use_google_corpus=True)
+>>> ws.segment('universityofwashington')
+['university', 'of', 'washington']
+
+In the code, the segmentation algorithm consists of the following steps,
+
+1)divide and conquer -- safely divide the input string into substring. This way
+  we solved the length limit which will dramatically slow down the performance.
+  for example, "facebook123helloworld" will be treated as 3 sub-problems -- 
+  "facebook", "123", and "helloworld". The rule to divide is kee
+2)for each sub-string. I used dynamic programming to calculate and get the optimal
+  words. 
+3)combine the sub-problem, and return the result for the original string
 
 Scoring mechanism based on formula from the chapter "Natural Language Corpus Data"
 from the book "Beautiful Data" (Segaran and Hammerbacher, 2009)
@@ -552,8 +560,6 @@ class WordSegment(object):
         return return_lst
 
 
-w = WordSegment()
-print w.segment('thisisatest')
 '''
 Test Cases
 w = WordSegment(use_google_corpus=True)
