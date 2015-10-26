@@ -13,6 +13,8 @@ Typically, you will use the module this way in your own code.
 >>> ws = WordSegment(use_google_corpus=True)
 >>> ws.segment('universityofwashington')
 ['university', 'of', 'washington']
+>>> ws.segment('thisisatest')
+['this', 'is', 'a', 'test']
 
 In the code, the segmentation algorithm consists of the following steps,
 
@@ -22,12 +24,25 @@ In the code, the segmentation algorithm consists of the following steps,
   "facebook", "123", and "helloworld". The rule to divide is kee
 2)for each sub-string. I used dynamic programming to calculate and get the optimal
   words. 
-3)combine the sub-problem, and return the result for the original string
+3)combine the sub-problems, and return the result for the original string.
+
+This module is inspired by Grant Jenks' https://pypi.python.org/pypi/wordsegment.
+
+Segmentation algorithm used in this module, has achieved a time-complexity of O(n^2).
+By comparison to existing segmentation algorithms, this module does better on following aspects,
+
+1)can handle very long input. There is no arbitary max lenght limit set to input string.
+2)segmentation finished in polynomial time via dynamic programming.
+3)by default, the algorithm uses a filtered Google corpus, which contains only English words that could be found in dictionary.
+
+An extreme example is shown below,
+
+>>>ws.segment('MARGARETAREYOUGRIEVINGOVERGOLDENGROVEUNLEAVINGLEAVESLIKETHETHINGSOFMANYOUWITHYOURFRESHTHOUGHTSCAREFORCANYOUAHASTHEHEARTGROWSOLDERITWILLCOMETOSUCHSIGHTSCOLDERBYANDBYNORSPAREASIGHTHOUGHWORLDSOFWANWOODLEAFMEALLIEANDYETYOUWILLWEEPANDKNOWWHYNOWNOMATTERCHILDTHENAMESORROWSSPRINGSARETHESAMENORMOUTHHADNONORMINDEXPRESSEDWHATHEARTHEARDOFGHOSTGUESSEDITISTHEBLIGHTMANWASBORNFORITISMARGARETYOUMOURNFOR')
+['margaret', 'are', 'you', 'grieving', 'over', 'golden', 'grove', 'un', 'leaving', 'leaves', 'like', 'the', 'things', 'of', 'man', 'you', 'with', 'your', 'fresh', 'thoughts', 'care', 'for', 'can', 'you', 'a', 'has', 'the', 'he', 'art', 'grows', 'older', 'it', 'will', 'come', 'to', 'such', 'sights', 'colder', 'by', 'and', 'by', 'nor', 'spa', 're', 'a', 'sigh', 'though', 'worlds', 'of', 'wan', 'wood', 'leaf', 'me', 'allie', 'and', 'yet', 'you', 'will', 'weep', 'and', 'know', 'why', 'now', 'no', 'matter', 'child', 'the', 'name', 'sorrows', 'springs', 'are', 'the', 'same', 'nor', 'mouth', 'had', 'non', 'or', 'mind', 'expressed', 'what', 'he', 'art', 'heard', 'of', 'ghost', 'guessed', 'it', 'is', 'the', 'blight', 'man', 'was', 'born', 'for', 'it', 'is', 'margaret', 'you', 'mourn', 'for']
 
 Scoring mechanism based on formula from the chapter "Natural Language Corpus Data"
 from the book "Beautiful Data" (Segaran and Hammerbacher, 2009)
 http://oreilly.com/catalog/9780596157111/
-Original Copyright (c) 2008-2009 by Peter Norvig
 """
 
 import sys
@@ -50,6 +65,7 @@ def parse_file(filename):
 
 #UNIGRAM_COUNTS = parse_file(join(dirname(realpath(__file__)), 'corpus', 'unigrams.txt'))
 UNIGRAM_COUNTS = parse_file(join(dirname(realpath(__file__)), 'corpus', 'unigrams.txt.original'))
+BIGRAM_COUNTS = parse_file(join(dirname(realpath(__file__)), 'corpus', 'bigrams.txt'))
 
 def as_range(group):
     '''
@@ -232,6 +248,12 @@ class WordSegment(object):
                 )
             counter += 1
 
+    def bigram_reward(slef, current, prev):
+        '''
+        function that give extra score to bigram found in Goole Corpus
+        '''
+        pass
+
     def penaltize(self, current, prev):
         '''
         function that imposes penalty to any gap between words
@@ -239,17 +261,29 @@ class WordSegment(object):
         #[[(1, 3), 'ace', (0,), -4.964005188761728], [(0, 3), 'face', (0,), -4.0926128161036965], [(4, 5), 'bo', (1, 2), -5.2144070696039995], [(4, 6), 'boo', (1, 2), -5.50655106498099], [(4, 7), 'book', (1, 2), -3.490909555336102], [(0, 7), 'facebook', (0,), -6.671146108616224]]
         '''
         penalty = -10
+        bigram_reward = 0
+
         #starting point penalty
         if prev == 0:
             gap = penalty  * (self.lst[current-1][0][0] - 0)
             #print "starting point gap found current->{0}, prev->{1}, GAP: {2}".format(current, prev, gap)
         elif self.lst[current-1][0][0] - self.lst[prev-1][0][1] == 1:
+            bigram = '{0} {1}'.format(self.lst[prev-1][1], self.lst[current-1][1])
+            #print "bigram is {}".format(bigram)
+            if bigram in BIGRAM_COUNTS:
+            # Conditional probability of the word given the previous
+            # word. The technical name is *stupid backoff* and it's
+            # not a probability distribution but it works well in
+            # practice.
+                bigram_reward =  (BIGRAM_COUNTS[bigram] / 1024908267229.0 / self.lst[prev-1][3]) - self.lst[current-1][3]
+                #print "bigram reward {0} added! for bigram {1}".format(bigram_reward, bigram)
+
             gap = 0
             #print "seamless one found current->{0}, prev->{1}, GAP: {2}".format(current, prev, gap)
         else:
             gap = 0
             #print "Non-seamless one found current->{0}, prev->{1}, GAP: {2}".format(current, prev, gap)
-        return gap
+        return gap + bigram_reward
 
     def _init_graph(self, meaningful_words):
         '''
@@ -345,6 +379,7 @@ class WordSegment(object):
                 tu1.insert(2, (0,))
 
         self.lst = meaningful_words
+        #print meaningful_words
 
         j = len(self.lst)
         #print "j has length of {}".format(j)
@@ -395,7 +430,6 @@ class WordSegment(object):
         pos = 0
         for each in tmp_lst:
             new_lst.append((each, ))
-        #print memo
 
         def find_path(j, path):
             """
@@ -496,6 +530,11 @@ class WordSegment(object):
         meaningful_words = []
         #meaningful_words is [((0, 10),"helloworld"),...]
         for each in candidate_list:
+            #print "each[1][0] is {0} of type{1}".format(each[1][0], type(each[1][0]))
+            if 'a' == each[1][0][0]:
+                meaningful_words.append(((each[1][1][0],
+                                          each[1][1][0]+len('a')-1), 'a',
+                                         self.score_tool.get_unigram_score('a')))
             #(17507324569.0, ('in', (8, 10)))
             for word in self.ngram_tree[each[1][0]]:
                 if word in each[1][0] + pair_dic[each[1]]:
@@ -504,8 +543,10 @@ class WordSegment(object):
                                                   each[1][1][0]+len(word)-1), word,
                                                  self.score_tool.get_unigram_score(word)))
 
+
         #sort the list in order of position in original text
         meaningful_words.sort(key=lambda x: x[0][1])
+        #print meaningful_words
 
         #find components from the original input string
         components = []
@@ -575,4 +616,8 @@ w.segment('from')
 print w.segment('MARGARETAREYOUGRIEVINGOVERGOLDENGROVEUNLEAVINGLEAVESLIKETHETHINGSOFMANYOUWITHYOURFRESHTHOUGHTSCAREFORCANYOUAHASTHEHEARTGROWSOLDERITWILLCOMETOSUCHSIGHTSCOLDERBYANDBYNORSPAREASIGHTHOUGHWORLDSOFWANWOODLEAFMEALLIEANDYETYOUWILLWEEPANDKNOWWHYNOWNOMATTERCHILDTHENAMESORROWSSPRINGSARETHESAMENORMOUTHHADNONORMINDEXPRESSEDWHATHEARTHEARDOFGHOSTGUESSEDITISTHEBLIGHTMANWASBORNFORITISMARGARETYOUMOURNFOR') 
 w.segment('pressinginvestedthebecomethemselves')
 '''
-
+__title__ = 'wordsegmentation'
+__version__ = '0.3.5'
+__author__ = 'Weihan Jiang'
+__license__ = 'Apache 2.0'
+__copyright__ = 'Copyright 2015 Weihan Jiang'
